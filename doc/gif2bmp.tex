@@ -1,0 +1,122 @@
+\documentclass[12pt,a4paper,notitlepage,final]{article}
+
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+% balicky pro odkazy
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,unicode]{hyperref}
+\usepackage{url}
+% obrazky
+\usepackage[dvipdf]{graphicx}
+% velikost stranky
+\usepackage[top=3.5cm, left=2.5cm, text={17cm, 24cm}, ignorefoot]{geometry}
+\usepackage{listings}
+\usepackage{minted}
+\usepackage{fancyhdr,graphicx,amsmath,amssymb}
+\usepackage[ruled,vlined]{algorithm2e}
+
+
+
+\author{Michal Šrubař\\xsruba03@stud.fit.vutbr.cz}
+\date{\today} 
+\title{Konverze obrázkového formátu GIF na BMP}
+
+\begin{document}
+\maketitle
+
+Tato dokumentace popisuje knihovnu \texttt{libgif2bmp.a} a aplikaci \texttt{gif2bmp}
+implementovanou v~rámci projektu do předmětu \textit{Kódování a komprese dat}.  Celá
+knihovna včetně aplikace je implementována v~jazyce C bez použití externích
+knihoven. Knihovna poskytuje funkce, pomocí kterých je
+možné načíst GIF obrázek do paměti, vypsat jeho interní strukturu, převést jej
+do 24-bitového binárního RGB formátu a převést obrázek na bitmapový obrázek ve
+formátu BMP. Knihovna umí zpracovat statické\footnote{GIF obrázky bez animací}
+8-bitové GIF obrázky, průhledné pixely jsou konvertovaný na pixely bílé barvy a
+animované GIF obrázky nejsou podporovány. Výstupní bitmap obrázky jsou poté
+nekomprimované.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Použití aplikace \texttt{gif2bmp}}
+1. Převod GIF obrázku \texttt{logo.gif} na BMP obrázek \texttt{logo.bmp}
+\begin{minted}{bash} 
+   gif2bmp -i logo.gif > logo.bmp 
+\end{minted}
+2. Převod GIF obrázku na 24-bitové RGB hodnoty
+\begin{minted}{bash} 
+   gif2bmp -i logo.gif -r > logo.rgb
+\end{minted}
+3. Zobrazení interní struktury GIF obrázku
+\begin{minted}{bash} 
+   gif2bmp -i logo.gif -p
+\end{minted}
+
+Další volby a popis fungování je možné získat v~nápovědě, kterou je možné
+zobrazit pomocí přepínače \texttt{-h}, tj. \texttt{gif2bmp -h}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Popis modulů knihovny}
+Knihovna se skládá z~několika modulů, které popisuje tabulka \ref{modules}. Slovník, který je
+reprezentován hašovací tabulkou je implementován jako dynamický kruhový seznam,
+který je implementován moduly \texttt{list} a \texttt{gif\_dict}. Samotná
+aplikace \texttt{gif2bmp} je poté implementována v~souboru \texttt{main.c}
+
+\begin{table}[]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Modul}  & \textbf{Popis}                                             \\ \hline
+list            & lineární seznam                                            \\ \hline
+gif\_bits       & základní bitové a bajtové operace                          \\ \hline
+gif             & načtení GIF obrázku do paměti                              \\ \hline
+gif\_print      & interní strukturu GIF souboru                              \\ \hline
+gif\_dict       & operace pro práci se slovníkem použitém při LZW dekompresi \\ \hline
+gif\_interlance & převod prokládaného obrázku na neprokládaný                \\ \hline
+gif\_lzw        & implementace LZW algoritmu pro dekompresi dat              \\ \hline
+gif\_rgb        & převod GIF obrázku na RGB hodnoty                          \\ \hline
+bmp             & mapování GIF obrázku na bitmapu                            \\ \hline
+gif2bmp         & převod GIF obrázku na bitmapu                              \\ \hline
+\end{tabular}
+\caption{Tabulka popisující moduly knihovny \texttt{libgif2bmp}}
+\label{modules}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Dekomprese pomocí algoritmu LZW}
+Implementační detaily dekomprese, jehož algorimus popisuje pseukód \ref{alg}, je
+možné nalézt v~modulu gif\_lzw.c. \texttt{code} reprezentuje kódové slovo a
+\texttt{\{code\}} hodnotu ve slovníku.
+
+\begin{algorithm}[H]
+\KwIn{Posloupnost kodovych slov}
+\KwOut{Posloupnost indexu do tabulky barev}
+
+\nl Inicializace slovniku\;
+Precti Clear Code\;
+code = precti dalsi kod\;
+vytiskni \{code\}\;
+\nl LOOP\;
+code-1 = code
+code = precti dalsi kod\;
+Je kod v~tabulce?\;
+\nl ANO:\;
+	vytiskni \{code\}\;
+	k~= prvni prvek z~\{code\}\;
+\nl NE:\;
+	k~= prvni prvek z~\{code-1\}\;
+	vytiskni \{code-1\}+k\;
+\;
+\nl do slovniku pridej \{code-1\}+k\;
+zpět na LOOP\;
+  
+\caption{{\bf LZW Dekomprese} \label{alg}}
+\end{algorithm}
+
+Pokud je přečten speciální kód \textit{Clear Code}, pak nastane reinicializace
+slovníku a resetování velikosti délky kódového slova. Pokud je přečten kód
+\textit{End of Information}, pak je čtení dat u~konce.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
