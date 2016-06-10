@@ -28,3 +28,6 @@ $ make
 ```
 ./gif2bmp -h
 ```
+
+## Documentation
+Czech documentation can be found [here](https://github.com/mmsrubar/gif2bmp/blob/master/doc/gif2bmp.pdf).
